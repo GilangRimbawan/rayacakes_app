@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'api_config.dart';
 import 'pages/halaman_login.dart'; // Import halaman pertama
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ApiConfig.muatIpTersimpan();
+
   runApp(const MyApp());
 }
 
