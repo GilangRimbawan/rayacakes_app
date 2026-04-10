@@ -3,11 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../api_config.dart';
 
-// ==========================================
-// 4. HALAMAN INVENTARIS (BARU)
-// ==========================================
 class HalamanInventaris extends StatefulWidget {
-  const HalamanInventaris({Key? key}) : super(key: key);
+  const HalamanInventaris({super.key});
 
   @override
   _HalamanInventarisState createState() => _HalamanInventarisState();
@@ -19,16 +16,16 @@ class _HalamanInventarisState extends State<HalamanInventaris> {
   final Color warnaTeksUtama = const Color(0xFF4A3F35);
 
   List<dynamic> _listBahan = [];
-  List<dynamic> _listFiltered = []; // Untuk hasil pencarian
+  List<dynamic> _listFiltered = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _ambilDataInventaris(); // Panggil API saat halaman dibuka
+    _ambilDataInventaris();
   }
 
-  // Fungsi untuk mengambil data dari CodeIgniter
+  // Fungsi ini sekarang mengembalikan Future agar RefreshIndicator tahu kapan loading selesai
   Future<void> _ambilDataInventaris() async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/bahan_baku');
@@ -38,36 +35,30 @@ class _HalamanInventarisState extends State<HalamanInventaris> {
         final data = jsonDecode(response.body);
         setState(() {
           _listBahan = data;
-          _listFiltered = data; // Awalnya tampilkan semua
+          _listFiltered = data;
           _isLoading = false;
         });
-      } else {
-        _tampilkanPesan('Gagal mengambil data dari server');
-        setState(() { _isLoading = false; });
       }
     } catch (e) {
-      _tampilkanPesan('Kesalahan jaringan: $e');
-      setState(() { _isLoading = false; });
+      debugPrint('Kesalahan jaringan: $e');
+    } finally {
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
     }
   }
 
-  // Fungsi untuk mencari bahan
   void _cariBahan(String kataKunci) {
     setState(() {
       if (kataKunci.isEmpty) {
         _listFiltered = _listBahan;
       } else {
         _listFiltered = _listBahan.where((item) {
-          // Sesuaikan 'nama_bahan' dengan nama kolom di database kamu
           final nama = item['nama_bahan']?.toString().toLowerCase() ?? '';
           return nama.contains(kataKunci.toLowerCase());
         }).toList();
       }
     });
-  }
-
-  void _tampilkanPesan(String pesan) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pesan)));
   }
 
   @override
@@ -86,7 +77,6 @@ class _HalamanInventarisState extends State<HalamanInventaris> {
         child: Column(
           children: [
             const SizedBox(height: 10),
-            // --- KOTAK PENCARIAN ---
             TextField(
               onChanged: (nilai) => _cariBahan(nilai),
               decoration: InputDecoration(
@@ -103,80 +93,66 @@ class _HalamanInventarisState extends State<HalamanInventaris> {
             ),
             const SizedBox(height: 24),
 
-            // --- DAFTAR BAHAN BAKU ---
             Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _listFiltered.isEmpty
-                      ? Center(child: Text('Bahan tidak ditemukan', style: TextStyle(color: Colors.grey[600])))
-                      : ListView.builder(
-                          itemCount: _listFiltered.length,
-                          itemBuilder: (context, index) {
-                            final item = _listFiltered[index];
-                            
-                            // Ambil data dari JSON (Sesuaikan key-nya dengan database kamu)
-                            final namaBahan = item['nama_bahan'] ?? 'Nama Bahan';
-                            final satuan = item['satuan'] ?? '';
-                            // Asumsikan field stok berupa angka
-                            final stokDouble = double.tryParse(item['stok']?.toString() ?? '0') ?? 0.0;
-                            final stok = stokDouble.toInt();
-                            final batasKritis = double.tryParse(item['batas_kritis']?.toString() ?? '0') ?? 0.0;
-                            final isStokTipis = stokDouble <= batasKritis;
+              // --- WRAPPER REFRESH DI SINI ---
+              child: RefreshIndicator(
+                onRefresh: _ambilDataInventaris, // Memanggil fungsi API saat di-swipe
+                color: warnaPrimary,
+                backgroundColor: Colors.white,
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _listFiltered.isEmpty
+                        ? ListView( // Gunakan ListView agar area kosong tetap bisa di-swipe
+                            children: [
+                              SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                              Center(child: Text('Bahan tidak ditemukan', style: TextStyle(color: Colors.grey[600]))),
+                            ],
+                          )
+                        : ListView.builder(
+                            itemCount: _listFiltered.length,
+                            // Selalu aktifkan physics scroll agar RefreshIndicator bekerja meski item sedikit
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemBuilder: (context, index) {
+                              final item = _listFiltered[index];
+                              final namaBahan = item['nama_bahan'] ?? 'Nama Bahan';
+                              final satuan = item['satuan'] ?? '';
+                              final stokDouble = double.tryParse(item['stok']?.toString() ?? '0') ?? 0.0;
+                              final stok = stokDouble.toInt(); 
+                              final batasKritis = double.tryParse(item['batas_kritis']?.toString() ?? '0') ?? 0.0;
+                              final isStokTipis = stokDouble <= batasKritis;
 
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16.0),
-                              padding: const EdgeInsets.all(16.0),
-                              decoration: BoxDecoration(
-                                color: isStokTipis ? const Color(0xFFFFF0F0) : Colors.white,
-                                borderRadius: BorderRadius.circular(16.0),
-                                border: isStokTipis ? Border.all(color: Colors.red.shade200, width: 1) : null,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.03),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  )
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  // Ikon Box
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: isStokTipis ? Colors.red.shade50 : warnaBackground,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(Icons.inventory_2_outlined, color: isStokTipis ? Colors.red : warnaPrimary),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  
-                                  // Nama Bahan
-                                  Expanded(
-                                    child: Text(
-                                      namaBahan,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: warnaTeksUtama,
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 16.0),
+                                padding: const EdgeInsets.all(16.0),
+                                decoration: BoxDecoration(
+                                  color: isStokTipis ? const Color(0xFFFFF0F0) : Colors.white,
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  border: isStokTipis ? Border.all(color: Colors.red.withValues(alpha: 0.2), width: 1) : null,
+                                  boxShadow: [
+                                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: isStokTipis ? Colors.red.withValues(alpha: 0.05) : warnaBackground,
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
+                                      child: Icon(Icons.inventory_2_outlined, color: isStokTipis ? Colors.red : warnaPrimary),
                                     ),
-                                  ),
-                                  
-                                  // Jumlah Stok
-                                  Text(
-                                    '$stok $satuan',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: isStokTipis ? Colors.red : warnaTeksUtama,
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Text(namaBahan, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: warnaTeksUtama)),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                                    Text('$stok $satuan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isStokTipis ? Colors.red : warnaTeksUtama)),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+              ),
             ),
           ],
         ),
