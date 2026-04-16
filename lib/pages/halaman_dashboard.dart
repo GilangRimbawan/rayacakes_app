@@ -111,9 +111,17 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HalamanLogin()));
+              // pushAndRemoveUntil akan membuang semua halaman sebelumnya dari memori HP
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HalamanLogin()),
+                (Route<dynamic> route) => false, 
+              );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             child: const Text('Keluar', style: TextStyle(color: Colors.white)),
           ),
         ],
