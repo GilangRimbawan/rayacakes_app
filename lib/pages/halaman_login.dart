@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart'; // Tambahkan import ini
 import '../api_config.dart';
-import 'halaman_dashboard.dart'; // Untuk navigasi setelah login
+import 'halaman_dashboard.dart';
 
 // ==========================================
 // 1. HALAMAN LOGIN
@@ -17,11 +18,31 @@ class HalamanLogin extends StatefulWidget {
 class _HalamanLoginState extends State<HalamanLogin> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  
   bool _isLoading = false;
+  bool _isRememberMe = false; // Variabel state untuk Checkbox
 
   final Color warnaBackground = const Color(0xFFFFF5E9); 
   final Color warnaPrimary = const Color(0xFFFF944D); 
   final Color warnaTeksUtama = const Color(0xFF4A3F35); 
+
+  @override
+  void initState() {
+    super.initState();
+    _muatDataAkunTersimpan(); // Panggil fungsi saat layar pertama kali dibuka
+  }
+
+  // --- FUNGSI UNTUK MEMUAT USERNAME & PASSWORD TERSIMPAN ---
+  Future<void> _muatDataAkunTersimpan() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isRememberMe = prefs.getBool('remember_me') ?? false;
+      if (_isRememberMe) {
+        _usernameController.text = prefs.getString('saved_username') ?? '';
+        _passwordController.text = prefs.getString('saved_password') ?? '';
+      }
+    });
+  }
 
   Future<void> prosesLogin() async {
     setState(() { _isLoading = true; });
@@ -40,7 +61,21 @@ class _HalamanLoginState extends State<HalamanLogin> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['status'] == 'success') {
-          // UBAH ARAH NAVIGASI: Setelah login sukses, pergi ke Dashboard
+          
+          // --- LOGIKA MENYIMPAN AKUN (REMEMBER ME) ---
+          final prefs = await SharedPreferences.getInstance();
+          if (_isRememberMe) {
+            // Jika dicentang, simpan ke memori HP
+            await prefs.setBool('remember_me', true);
+            await prefs.setString('saved_username', _usernameController.text);
+            await prefs.setString('saved_password', _passwordController.text);
+          } else {
+            // Jika tidak dicentang, hapus dari memori HP
+            await prefs.setBool('remember_me', false);
+            await prefs.remove('saved_username');
+            await prefs.remove('saved_password');
+          }
+
           if (mounted) {
             Navigator.pushReplacement(
               context,
@@ -69,14 +104,12 @@ class _HalamanLoginState extends State<HalamanLogin> {
     );
   }
 
-// --- FUNGSI BARU: POPUP GANTI IP DENGAN HISTORY ---
   void _tampilkanDialogGantiIp() {
     final TextEditingController ipController = TextEditingController(text: ApiConfig.ipSaatIni);
 
     showDialog(
       context: context,
       builder: (context) {
-        // Menggunakan StatefulBuilder agar dialog bisa me-refresh dirinya sendiri
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
@@ -104,7 +137,6 @@ class _HalamanLoginState extends State<HalamanLogin> {
                         fillColor: Colors.grey[100],
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                         prefixIcon: const Icon(Icons.computer, color: Colors.grey),
-                        // Tombol (X) di dalam textfield untuk menghapus ketikan dengan cepat
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.clear, size: 20),
                           onPressed: () => ipController.clear(),
@@ -112,8 +144,6 @@ class _HalamanLoginState extends State<HalamanLogin> {
                       ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     ),
-                    
-                    // --- BAGIAN MENAMPILKAN RIWAYAT IP ---
                     if (ApiConfig.historyIp.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       Text('Riwayat IP (Tap untuk memilih):', style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.bold)),
@@ -127,15 +157,13 @@ class _HalamanLoginState extends State<HalamanLogin> {
                             backgroundColor: warnaPrimary.withValues(alpha: 0.1),
                             deleteIconColor: Colors.redAccent.withValues(alpha: 0.6),
                             onSelected: (bool selected) {
-                              // Jika di-tap, langsung masukkan ke TextField
                               setStateDialog(() {
                                 ipController.text = ip;
                               });
                             },
                             onDeleted: () async {
-                              // Jika tombol X di-tap, hapus dari riwayat
                               await ApiConfig.hapusDariHistory(ip);
-                              setStateDialog(() {}); // Refresh tampilan dialog
+                              setStateDialog(() {});
                             },
                           );
                         }).toList(),
@@ -152,7 +180,6 @@ class _HalamanLoginState extends State<HalamanLogin> {
                 ElevatedButton(
                   onPressed: () async {
                     if (ipController.text.isNotEmpty) {
-                      // Simpan IP baru (otomatis masuk ke history)
                       await ApiConfig.simpanIpBaru(ipController.text);
                       if (mounted) {
                         Navigator.pop(context);
@@ -185,7 +212,6 @@ class _HalamanLoginState extends State<HalamanLogin> {
     return Scaffold(
       backgroundColor: warnaBackground,
       body: SafeArea(
-        // MENGGUNAKAN STACK AGAR TOMBOL PENGATURAN BISA MELAYANG DI POJOK
         child: Stack(
           children: [
             Center(
@@ -194,11 +220,6 @@ class _HalamanLoginState extends State<HalamanLogin> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.cake_rounded, size: 80, color: warnaPrimary),
-                    const SizedBox(height: 16),
-                    Text('Raya Cakes', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: warnaTeksUtama)),
-                    const SizedBox(height: 40),
-
                     Container(
                       padding: const EdgeInsets.all(24.0),
                       decoration: BoxDecoration(
@@ -209,7 +230,7 @@ class _HalamanLoginState extends State<HalamanLogin> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text('Login', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: warnaTeksUtama)),
+                          Text('Raya Cakes', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: warnaTeksUtama)),
                           const SizedBox(height: 24),
                           TextField(
                             controller: _usernameController,
@@ -229,7 +250,33 @@ class _HalamanLoginState extends State<HalamanLogin> {
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16.0), borderSide: BorderSide.none),
                             ),
                           ),
+                          const SizedBox(height: 16),
+                          
+                          // --- TAMBAHAN WIDGET REMEMBER ME DI SINI ---
+                          Row(
+                            children: [
+                              SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: Checkbox(
+                                  value: _isRememberMe,
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      _isRememberMe = value ?? false;
+                                    });
+                                  },
+                                  activeColor: warnaPrimary,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                  side: BorderSide(color: Colors.grey.shade400, width: 1.5),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text('Ingat Saya', style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+                            ],
+                          ),
                           const SizedBox(height: 24),
+                          // ------------------------------------------
+
                           _isLoading
                               ? const Center(child: CircularProgressIndicator())
                               : ElevatedButton(
@@ -245,7 +292,7 @@ class _HalamanLoginState extends State<HalamanLogin> {
                                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)), elevation: 0,
                                   ),
-                                  child: const Text('Login', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                  child: const Text('Masuk', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                 ),
                         ],
                       ),
@@ -255,7 +302,6 @@ class _HalamanLoginState extends State<HalamanLogin> {
               ),
             ),
             
-            // --- TOMBOL PENGATURAN IP DI POJOK KANAN ATAS ---
             Positioned(
               top: 16,
               right: 16,
