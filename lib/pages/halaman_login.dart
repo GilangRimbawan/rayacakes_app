@@ -69,70 +69,114 @@ class _HalamanLoginState extends State<HalamanLogin> {
     );
   }
 
-  // --- FUNGSI BARU: POPUP GANTI IP ---
+// --- FUNGSI BARU: POPUP GANTI IP DENGAN HISTORY ---
   void _tampilkanDialogGantiIp() {
     final TextEditingController ipController = TextEditingController(text: ApiConfig.ipSaatIni);
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.wifi_rounded, color: warnaPrimary),
-            const SizedBox(width: 8),
-            const Text('Pengaturan Server'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Masukkan IP Address WiFi/Hotspot saat ini:', style: TextStyle(fontSize: 14)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: ipController,
-              decoration: InputDecoration(
-                hintText: 'Misal: 192.168.43.15',
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                prefixIcon: const Icon(Icons.computer, color: Colors.grey),
+      builder: (context) {
+        // Menggunakan StatefulBuilder agar dialog bisa me-refresh dirinya sendiri
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Icon(Icons.wifi_rounded, color: warnaPrimary),
+                  const SizedBox(width: 8),
+                  const Text('Pengaturan Server'),
+                ],
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Batal', style: TextStyle(color: Colors.grey[600])),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (ipController.text.isNotEmpty) {
-                // Simpan IP baru
-                await ApiConfig.simpanIpBaru(ipController.text);
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('IP Server berhasil diperbarui!'), 
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 2),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Masukkan IP Address WiFi/Hotspot saat ini:', style: TextStyle(fontSize: 14)),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: ipController,
+                      decoration: InputDecoration(
+                        hintText: 'Misal: 192.168.43.15',
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        prefixIcon: const Icon(Icons.computer, color: Colors.grey),
+                        // Tombol (X) di dalam textfield untuk menghapus ketikan dengan cepat
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () => ipController.clear(),
+                        ),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: warnaPrimary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Simpan', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+                    
+                    // --- BAGIAN MENAMPILKAN RIWAYAT IP ---
+                    if (ApiConfig.historyIp.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Text('Riwayat IP (Tap untuk memilih):', style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8.0,
+                        runSpacing: 4.0,
+                        children: ApiConfig.historyIp.map((ip) {
+                          return InputChip(
+                            label: Text(ip, style: TextStyle(color: warnaTeksUtama, fontSize: 13)),
+                            backgroundColor: warnaPrimary.withValues(alpha: 0.1),
+                            deleteIconColor: Colors.redAccent.withValues(alpha: 0.6),
+                            onSelected: (bool selected) {
+                              // Jika di-tap, langsung masukkan ke TextField
+                              setStateDialog(() {
+                                ipController.text = ip;
+                              });
+                            },
+                            onDeleted: () async {
+                              // Jika tombol X di-tap, hapus dari riwayat
+                              await ApiConfig.hapusDariHistory(ip);
+                              setStateDialog(() {}); // Refresh tampilan dialog
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ]
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Batal', style: TextStyle(color: Colors.grey[600])),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (ipController.text.isNotEmpty) {
+                      // Simpan IP baru (otomatis masuk ke history)
+                      await ApiConfig.simpanIpBaru(ipController.text);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('IP Server berhasil diperbarui!'), 
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: warnaPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Simpan', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          }
+        );
+      },
     );
   }
 

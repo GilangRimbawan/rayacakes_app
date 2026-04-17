@@ -181,40 +181,27 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
                     ),
                     PopupMenuButton<String>(
                       onSelected: (value) {
-                        if (value == 'profil') {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Halaman Profil belum dibuat')));
-                        } else if (value == 'logout') {
+                        if (value == 'logout') {
                           _konfirmasiKeluar();
                         }
                       },
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       offset: const Offset(0, 50),
                       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                        PopupMenuItem<String>(
-                          value: 'profil',
-                          child: Row(
-                            children: [
-                              Icon(Icons.person_outline, color: warnaTeksUtama),
-                              const SizedBox(width: 12),
-                              Text('Profil Saya', style: TextStyle(color: warnaTeksUtama)),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuDivider(),
                         const PopupMenuItem<String>(
                           value: 'logout',
                           child: Row(
                             children: [
                               Icon(Icons.logout_rounded, color: Colors.redAccent),
                               const SizedBox(width: 12),
-                              const Text('Keluar', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                              Text('Keluar', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
                       ],
                       child: CircleAvatar(
                         radius: 28,
-                        backgroundColor: warnaPrimary.withValues(alpha: 0.2),
+                        backgroundColor: warnaPrimary.withValues(alpha: 0.2), // Ganti withOpacity jadi withValues kalau pakai Flutter terbaru
                         child: Icon(Icons.person, size: 32, color: warnaPrimary),
                       ),
                     ),
