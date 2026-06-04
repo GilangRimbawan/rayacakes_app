@@ -8,6 +8,7 @@ import 'halaman_login.dart';
 import 'halaman_inventaris.dart';
 import 'halaman_tambah_produksi.dart';
 import 'halaman_laporan.dart';
+import 'halaman_resep.dart';
 
 class HalamanDashboard extends StatefulWidget {
   const HalamanDashboard({super.key});
@@ -23,7 +24,7 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
 
   String _totalProduksiHariIni = '0';
   bool _isLoadingTotal = true;
-  
+
   // Variabel baru untuk fitur Peringatan Bahan Kritis
   int _jumlahBahanKritis = 0;
   bool _isLoadingBahan = true;
@@ -57,7 +58,9 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
       debugPrint('Gagal mengambil total produksi: $e');
     } finally {
       if (mounted) {
-        setState(() { _isLoadingTotal = false; });
+        setState(() {
+          _isLoadingTotal = false;
+        });
       }
     }
   }
@@ -75,8 +78,9 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
         // Loop untuk mengecek satu-satu mana yang stoknya di bawah batas kritis
         for (var item in data) {
           final stok = double.tryParse(item['stok']?.toString() ?? '0') ?? 0.0;
-          final batasKritis = double.tryParse(item['batas_kritis']?.toString() ?? '0') ?? 0.0;
-          
+          final batasKritis =
+              double.tryParse(item['batas_kritis']?.toString() ?? '0') ?? 0.0;
+
           if (stok <= batasKritis) {
             jumlahKritis++;
           }
@@ -92,7 +96,9 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
       debugPrint('Gagal cek bahan kritis: $e');
     } finally {
       if (mounted) {
-        setState(() { _isLoadingBahan = false; });
+        setState(() {
+          _isLoadingBahan = false;
+        });
       }
     }
   }
@@ -115,12 +121,14 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const HalamanLogin()),
-                (Route<dynamic> route) => false, 
+                (Route<dynamic> route) => false,
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Keluar', style: TextStyle(color: Colors.white)),
           ),
@@ -131,7 +139,10 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
 
   // Fungsi khusus saat navigasi, agar halaman merefresh diri setelah kembali
   Future<void> _navigasiDanRefresh(Widget halaman) async {
-    await Navigator.push(context, MaterialPageRoute(builder: (context) => halaman));
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => halaman),
+    );
     _ambilTotalProduksi();
     _cekBahanKritis();
   }
@@ -144,8 +155,10 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
         if (didPop) return;
 
         final sekarang = DateTime.now();
-        final jatahWaktuKeluar = _waktuTerakhirTekanBack == null || 
-            sekarang.difference(_waktuTerakhirTekanBack!) > const Duration(seconds: 2);
+        final jatahWaktuKeluar =
+            _waktuTerakhirTekanBack == null ||
+            sekarang.difference(_waktuTerakhirTekanBack!) >
+                const Duration(seconds: 2);
 
         if (jatahWaktuKeluar) {
           _waktuTerakhirTekanBack = sekarang;
@@ -174,9 +187,22 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Halo, Admin!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: warnaTeksUtama)),
+                        Text(
+                          'Halo, Admin!',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: warnaTeksUtama,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text('Siap memproduksi kue hari ini?', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                        Text(
+                          'Siap memproduksi kue hari ini?',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
                       ],
                     ),
                     PopupMenuButton<String>(
@@ -185,24 +211,42 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
                           _konfirmasiKeluar();
                         }
                       },
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       offset: const Offset(0, 50),
-                      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                        const PopupMenuItem<String>(
-                          value: 'logout',
-                          child: Row(
-                            children: [
-                              Icon(Icons.logout_rounded, color: Colors.redAccent),
-                              const SizedBox(width: 12),
-                              Text('Keluar', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ],
+                      itemBuilder: (BuildContext context) =>
+                          <PopupMenuEntry<String>>[
+                            const PopupMenuItem<String>(
+                              value: 'logout',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.logout_rounded,
+                                    color: Colors.redAccent,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Keluar',
+                                    style: TextStyle(
+                                      color: Colors.redAccent,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                       child: CircleAvatar(
                         radius: 28,
-                        backgroundColor: warnaPrimary.withValues(alpha: 0.2), // Ganti withOpacity jadi withValues kalau pakai Flutter terbaru
-                        child: Icon(Icons.person, size: 32, color: warnaPrimary),
+                        backgroundColor: warnaPrimary.withValues(
+                          alpha: 0.2,
+                        ), // Ganti withOpacity jadi withValues kalau pakai Flutter terbaru
+                        child: Icon(
+                          Icons.person,
+                          size: 32,
+                          color: warnaPrimary,
+                        ),
                       ),
                     ),
                   ],
@@ -219,28 +263,59 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF0F0), // Merah pastel lembut
                         borderRadius: BorderRadius.circular(16.0),
-                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
-                        boxShadow: [BoxShadow(color: Colors.red.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                        border: Border.all(
+                          color: Colors.redAccent.withValues(alpha: 0.4),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.1), shape: BoxShape.circle),
-                            child: const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.redAccent,
+                              size: 28,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Peringatan Stok!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent, fontSize: 16)),
+                                const Text(
+                                  'Peringatan Stok!',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.redAccent,
+                                    fontSize: 16,
+                                  ),
+                                ),
                                 const SizedBox(height: 4),
-                                Text('Ada $_jumlahBahanKritis bahan baku yang hampir habis. Sentuh untuk mengecek.', style: TextStyle(color: Colors.red[800], fontSize: 13)),
+                                Text(
+                                  'Ada $_jumlahBahanKritis bahan baku yang hampir habis. Sentuh untuk mengecek.',
+                                  style: TextStyle(
+                                    color: Colors.red[800],
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right_rounded, color: Colors.redAccent),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.redAccent,
+                          ),
                         ],
                       ),
                     ),
@@ -253,24 +328,54 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24.0),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [warnaPrimary, const Color(0xFFFFB380)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    gradient: LinearGradient(
+                      colors: [warnaPrimary, const Color(0xFFFFB380)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(24.0),
-                    boxShadow: [BoxShadow(color: warnaPrimary.withValues(alpha: 0.4), blurRadius: 15, offset: const Offset(0, 8))],
+                    boxShadow: [
+                      BoxShadow(
+                        color: warnaPrimary.withValues(alpha: 0.4),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Total Produksi Hari Ini', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w500)),
+                      const Text(
+                        'Total Produksi Hari Ini',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      _isLoadingTotal 
+                      _isLoadingTotal
                           ? const CircularProgressIndicator(color: Colors.white)
                           : Row(
                               crossAxisAlignment: CrossAxisAlignment.baseline,
                               textBaseline: TextBaseline.alphabetic,
                               children: [
-                                Text(_totalProduksiHariIni, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white)),
+                                Text(
+                                  _totalProduksiHariIni,
+                                  style: const TextStyle(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
-                                const Text('Kue', style: TextStyle(fontSize: 18, color: Colors.white70)),
+                                const Text(
+                                  'Kue',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white70,
+                                  ),
+                                ),
                               ],
                             ),
                     ],
@@ -283,25 +388,53 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
                   children: [
                     Expanded(
                       child: _buildMenuCard(
-                        context: context, judul: 'Inventaris', ikon: Icons.inventory_2_outlined, warnaIkon: Colors.blue,
-                        onTap: () => _navigasiDanRefresh(const HalamanInventaris()),
+                        context: context,
+                        judul: 'Bahan Baku',
+                        ikon: Icons.inventory_2_outlined,
+                        warnaIkon: Colors.blue,
+                        onTap: () =>
+                            _navigasiDanRefresh(const HalamanInventaris()),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildMenuCard(
-                        context: context, judul: 'Produksi', ikon: Icons.cake_outlined, warnaIkon: warnaPrimary,
-                        onTap: () => _navigasiDanRefresh(const HalamanTambahProduksi()),
+                        context: context,
+                        judul: 'Produksi',
+                        ikon: Icons.cake_outlined,
+                        warnaIkon: warnaPrimary,
+                        onTap: () =>
+                            _navigasiDanRefresh(const HalamanTambahProduksi()),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                
-                _buildMenuCard(
-                  context: context, judul: 'Laporan Produksi Lengkap', ikon: Icons.bar_chart_rounded, warnaIkon: Colors.purple,
-                  isFullWidth: true,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HalamanLaporan())),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMenuCard(
+                        context: context,
+                        judul: 'Resep Kue',
+                        ikon: Icons.menu_book_rounded,
+                        warnaIkon: Colors.teal,
+                        onTap: () =>
+                            _navigasiDanRefresh(const HalamanResep()),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildMenuCard(
+                        context: context,
+                        judul: 'Laporan',
+                        ikon: Icons.bar_chart_rounded,
+                        warnaIkon: Colors.purple,
+                        onTap: () =>
+                            _navigasiDanRefresh(const HalamanLaporan()),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -312,10 +445,10 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
   }
 
   Widget _buildMenuCard({
-    required BuildContext context, 
-    required String judul, 
-    required IconData ikon, 
-    required Color warnaIkon, 
+    required BuildContext context,
+    required String judul,
+    required IconData ikon,
+    required Color warnaIkon,
     required VoidCallback onTap,
     bool isFullWidth = false,
   }) {
@@ -327,18 +460,34 @@ class _HalamanDashboardState extends State<HalamanDashboard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24.0),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(color: warnaIkon.withValues(alpha: 0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: warnaIkon.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
               child: Icon(ikon, size: 32, color: warnaIkon),
             ),
             const SizedBox(height: 16),
-            Text(judul, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: warnaTeksUtama)),
+            Text(
+              judul,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: warnaTeksUtama,
+              ),
+            ),
           ],
         ),
       ),
